@@ -45,6 +45,7 @@ export enum AuthType {
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
+  USE_OPENAI = 'openai',
 }
 
 export type ContentGeneratorConfig = {
@@ -53,6 +54,19 @@ export type ContentGeneratorConfig = {
   vertexai?: boolean;
   authType?: AuthType | undefined;
   proxy?: string | undefined;
+  // OpenAI 相关配置
+  enableOpenAILogging?: boolean;
+  timeout?: number;
+  maxRetries?: number;
+  samplingParams?: {
+    top_p?: number;
+    top_k?: number;
+    repetition_penalty?: number;
+    presence_penalty?: number;
+    frequency_penalty?: number;
+    temperature?: number;
+    max_tokens?: number;
+  };
 };
 
 export function createContentGeneratorConfig(
@@ -63,6 +77,7 @@ export function createContentGeneratorConfig(
   const googleApiKey = process.env.GOOGLE_API_KEY || undefined;
   const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT || undefined;
   const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION || undefined;
+  const openaiApiKey = process.env.OPENAI_API_KEY || undefined;
 
   // Use runtime model from config if available; otherwise, fall back to parameter or default
   const effectiveModel = config.getModel() || DEFAULT_GEMINI_MODEL;
@@ -71,6 +86,10 @@ export function createContentGeneratorConfig(
     model: effectiveModel,
     authType,
     proxy: config?.getProxy(),
+    // 暂时设置默认值，实际应该从 config 获取
+    enableOpenAILogging: false,
+    timeout: 120000,
+    maxRetries: 3,
   };
 
   // If we are using Google auth or we are in Cloud Shell, there is nothing else to validate for now
@@ -99,6 +118,18 @@ export function createContentGeneratorConfig(
   ) {
     contentGeneratorConfig.apiKey = googleApiKey;
     contentGeneratorConfig.vertexai = true;
+
+    return contentGeneratorConfig;
+  }
+
+  // OpenAI 认证支持
+  if (authType === AuthType.USE_OPENAI && openaiApiKey) {
+    contentGeneratorConfig.apiKey = openaiApiKey;
+    const openaiModel = process.env.OPENAI_MODEL || 'gpt-4o';
+    contentGeneratorConfig.model = openaiModel;
+    
+    // 立即更新 Config 对象的模型，这样 getModel() 就会返回正确的模型名
+    config.setModel(openaiModel);
 
     return contentGeneratorConfig;
   }
@@ -140,6 +171,17 @@ export async function createContentGenerator(
     });
 
     return googleGenAI.models;
+  }
+
+  // OpenAI 内容生成器支持
+  if (config.authType === AuthType.USE_OPENAI) {
+    if (!config.apiKey) {
+      throw new Error('OpenAI API key is required');
+    }
+
+    // 动态导入 OpenAIContentGenerator 以避免循环依赖
+    const { OpenAIContentGenerator } = await import('./openaiContentGenerator.js');
+    return new OpenAIContentGenerator(config.apiKey, config.model, gcConfig);
   }
 
   throw new Error(

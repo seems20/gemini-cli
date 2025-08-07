@@ -471,7 +471,7 @@ export async function loadCliConfig(
     cwd: process.cwd(),
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
-    model: argv.model || settings.model || DEFAULT_GEMINI_MODEL,
+    model: argv.model || settings.model || (process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || 'gpt-4o') : DEFAULT_GEMINI_MODEL),
     extensionContextFilePaths,
     maxSessionTurns: settings.maxSessionTurns ?? -1,
     experimentalAcp: argv.experimentalAcp || false,
@@ -482,6 +482,7 @@ export async function loadCliConfig(
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
     ideModeFeature,
+    chatCompression: settings.chatCompression,
     folderTrustFeature,
   });
 }

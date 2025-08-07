@@ -11,6 +11,8 @@ import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { AuthType } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
+import { OpenAIKeyPrompt } from './OpenAIKeyPrompt.js';
+import { setOpenAIApiKey, setOpenAIBaseUrl, setOpenAIModel } from '../../config/auth.js';
 
 interface AuthDialogProps {
   onSelect: (authMethod: AuthType | undefined, scope: SettingScope) => void;
@@ -35,80 +37,71 @@ export function AuthDialog({
   settings,
   initialErrorMessage,
 }: AuthDialogProps): React.JSX.Element {
-  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
-    if (initialErrorMessage) {
-      return initialErrorMessage;
-    }
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    initialErrorMessage || null,
+  );
+  const [showOpenAIKeyPrompt, setShowOpenAIKeyPrompt] = useState(false);
+  const items = [{ label: 'OpenAI', value: AuthType.USE_OPENAI }];
 
-    const defaultAuthType = parseDefaultAuthType(
-      process.env.GEMINI_DEFAULT_AUTH_TYPE,
-    );
+  const initialAuthIndex = Math.max(
+    0,
+    items.findIndex((item) => {
+      if (settings.merged.selectedAuthType) {
+        return item.value === settings.merged.selectedAuthType;
+      }
 
-    if (process.env.GEMINI_DEFAULT_AUTH_TYPE && defaultAuthType === null) {
-      return (
-        `Invalid value for GEMINI_DEFAULT_AUTH_TYPE: "${process.env.GEMINI_DEFAULT_AUTH_TYPE}". ` +
-        `Valid values are: ${Object.values(AuthType).join(', ')}.`
+      const defaultAuthType = parseDefaultAuthType(
+        process.env.GEMINI_DEFAULT_AUTH_TYPE,
       );
-    }
+      if (defaultAuthType) {
+        return item.value === defaultAuthType;
+      }
 
-    if (
-      process.env.GEMINI_API_KEY &&
-      (!defaultAuthType || defaultAuthType === AuthType.USE_GEMINI)
-    ) {
-      return 'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.';
-    }
-    return null;
-  });
-  const items = [
-    {
-      label: 'Login with Google',
-      value: AuthType.LOGIN_WITH_GOOGLE,
-    },
-    ...(process.env.CLOUD_SHELL === 'true'
-      ? [
-          {
-            label: 'Use Cloud Shell user credentials',
-            value: AuthType.CLOUD_SHELL,
-          },
-        ]
-      : []),
-    {
-      label: 'Use Gemini API Key',
-      value: AuthType.USE_GEMINI,
-    },
-    { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
-  ];
+      if (process.env.OPENAI_API_KEY) {
+        return item.value === AuthType.USE_OPENAI;
+      }
 
-  const initialAuthIndex = items.findIndex((item) => {
-    if (settings.merged.selectedAuthType) {
-      return item.value === settings.merged.selectedAuthType;
-    }
-
-    const defaultAuthType = parseDefaultAuthType(
-      process.env.GEMINI_DEFAULT_AUTH_TYPE,
-    );
-    if (defaultAuthType) {
-      return item.value === defaultAuthType;
-    }
-
-    if (process.env.GEMINI_API_KEY) {
-      return item.value === AuthType.USE_GEMINI;
-    }
-
-    return item.value === AuthType.LOGIN_WITH_GOOGLE;
-  });
+      return item.value === AuthType.USE_OPENAI;
+    }),
+  );
 
   const handleAuthSelect = (authMethod: AuthType) => {
     const error = validateAuthMethod(authMethod);
     if (error) {
-      setErrorMessage(error);
+      if (authMethod === AuthType.USE_OPENAI && !process.env.OPENAI_API_KEY) {
+        setShowOpenAIKeyPrompt(true);
+        setErrorMessage(null);
+      } else {
+        setErrorMessage(error);
+      }
     } else {
       setErrorMessage(null);
       onSelect(authMethod, SettingScope.User);
     }
   };
 
+  const handleOpenAIKeySubmit = (
+    apiKey: string,
+    baseUrl: string,
+    model: string,
+  ) => {
+    setOpenAIApiKey(apiKey);
+    setOpenAIBaseUrl(baseUrl);
+    setOpenAIModel(model);
+    setShowOpenAIKeyPrompt(false);
+    onSelect(AuthType.USE_OPENAI, SettingScope.User);
+  };
+
+  const handleOpenAIKeyCancel = () => {
+    setShowOpenAIKeyPrompt(false);
+    setErrorMessage('OpenAI API key is required to use OpenAI authentication.');
+  };
+
   useInput((_input, key) => {
+    if (showOpenAIKeyPrompt) {
+      return;
+    }
+
     if (key.escape) {
       // Prevent exit if there is an error message.
       // This means they user is not authenticated yet.
@@ -125,6 +118,15 @@ export function AuthDialog({
       onSelect(undefined, SettingScope.User);
     }
   });
+
+  if (showOpenAIKeyPrompt) {
+    return (
+      <OpenAIKeyPrompt
+        onSubmit={handleOpenAIKeySubmit}
+        onCancel={handleOpenAIKeyCancel}
+      />
+    );
+  }
 
   return (
     <Box
@@ -155,13 +157,11 @@ export function AuthDialog({
         <Text color={Colors.Gray}>(Use Enter to select)</Text>
       </Box>
       <Box marginTop={1}>
-        <Text>Terms of Services and Privacy Notice for Gemini CLI</Text>
+        <Text>Terms of Services and Privacy Notice for OpenAI</Text>
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.AccentBlue}>
-          {
-            'https://github.com/google-gemini/gemini-cli/blob/main/docs/tos-privacy.md'
-          }
+          {'https://openai.com/policies/terms-of-use'}
         </Text>
       </Box>
     </Box>

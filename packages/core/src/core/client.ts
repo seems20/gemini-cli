@@ -12,6 +12,8 @@ import {
   Content,
   Tool,
   GenerateContentResponse,
+  FunctionDeclaration,
+  Schema,
 } from '@google/genai';
 import {
   getDirectoryContextString,
@@ -26,7 +28,7 @@ import {
 import { Config } from '../config/config.js';
 import { UserTierId } from '../code_assist/types.js';
 import { getCoreSystemPrompt, getCompressionPrompt } from './prompts.js';
-import { getResponseText } from '../utils/generateContentResponseUtilities.js';
+import { getResponseText, getFunctionCalls } from '../utils/generateContentResponseUtilities.js';
 import { checkNextSpeaker } from '../utils/nextSpeakerChecker.js';
 import { reportError } from '../utils/errorReporting.js';
 import { GeminiChat } from './geminiChat.js';
@@ -391,6 +393,19 @@ export class GeminiClient {
         ...config,
       };
 
+      // Convert schema to function declaration
+      const functionDeclaration: FunctionDeclaration = {
+        name: 'respond_in_schema',
+        description: 'Provide the response in provided schema',
+        parameters: schema as Schema,
+      };
+
+      const tools: Tool[] = [
+        {
+          functionDeclarations: [functionDeclaration],
+        },
+      ];
+
       const apiCall = () =>
         this.getContentGenerator().generateContent(
           {
@@ -398,8 +413,7 @@ export class GeminiClient {
             config: {
               ...requestConfig,
               systemInstruction,
-              responseSchema: schema,
-              responseMimeType: 'application/json',
+              tools,
             },
             contents,
           },
@@ -411,7 +425,16 @@ export class GeminiClient {
           await this.handleFlashFallback(authType, error),
         authType: this.config.getContentGeneratorConfig()?.authType,
       });
+      
+      const functionCalls = getFunctionCalls(result);
+      if (functionCalls && functionCalls.length > 0) {
+        const functionCall = functionCalls[0];
+        if (functionCall.args) {
+          return functionCall.args;
+        }
+      }
 
+      // Fallback to parsing text response if no function calls
       let text = getResponseText(result);
       if (!text) {
         const error = new Error(
@@ -596,12 +619,16 @@ export class GeminiClient {
       return null;
     }
 
+    const contextPercentageThreshold =
+      this.config.getChatCompression()?.contextPercentageThreshold;
+
     // Don't compress if not forced and we are under the limit.
-    if (
-      !force &&
-      originalTokenCount < this.COMPRESSION_TOKEN_THRESHOLD * tokenLimit(model)
-    ) {
-      return null;
+    if (!force) {
+      const threshold =
+        contextPercentageThreshold ?? this.COMPRESSION_TOKEN_THRESHOLD;
+      if (originalTokenCount < threshold * tokenLimit(model)) {
+        return null;
+      }
     }
 
     let compressBeforeIndex = findIndexAfterFraction(
