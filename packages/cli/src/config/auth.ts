@@ -38,5 +38,25 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
+  if (authMethod === AuthType.USE_OPENAI) {
+    if (!process.env.OPENAI_API_KEY) {
+      return 'OPENAI_API_KEY environment variable not found. You can set it now or add it to your environment (no reload needed if using .env)!';
+    }
+    return null;
+  }
+
   return 'Invalid auth method selected.';
+};
+
+// OpenAI 环境变量设置函数
+export const setOpenAIApiKey = (apiKey: string): void => {
+  process.env.OPENAI_API_KEY = apiKey;
+};
+
+export const setOpenAIBaseUrl = (baseUrl: string): void => {
+  process.env.OPENAI_BASE_URL = baseUrl;
+};
+
+export const setOpenAIModel = (model: string): void => {
+  process.env.OPENAI_MODEL = model;
 };
