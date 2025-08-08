@@ -151,7 +151,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
           getUserTier: vi.fn(),
         })),
         getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
-        getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
+        getAllGeminiMdFilenames: vi.fn(() => ['RDMind.md']),
         setFlashFallbackHandler: vi.fn(),
         getSessionId: vi.fn(() => 'test-session-id'),
         getUserTier: vi.fn().mockResolvedValue(undefined),
@@ -175,7 +175,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
     ...actualCore,
     Config: ConfigClassMock,
     MCPServerConfig: actualCore.MCPServerConfig,
-    getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
+    getAllGeminiMdFilenames: vi.fn(() => ['RDMind.md']),
     ideContext: ideContextMock,
     isGitRepository: vi.fn(),
   };
@@ -593,7 +593,7 @@ describe('App UI', () => {
       },
     });
     mockConfig.getGeminiMdFileCount.mockReturnValue(1);
-    mockConfig.getAllGeminiMdFilenames.mockReturnValue(['GEMINI.md']);
+    mockConfig.getAllGeminiMdFilenames.mockReturnValue(['RDMind.md']);
 
     const { lastFrame, unmount } = render(
       <App
@@ -605,13 +605,13 @@ describe('App UI', () => {
     currentUnmount = unmount;
     await Promise.resolve();
     expect(lastFrame()).toContain(
-      'Using: 1 open file (ctrl+e to view) | 1 GEMINI.md file',
+      'Using: 1 open file (ctrl+e to view) | 1 RDMind.md file',
     );
   });
 
-  it('should display default "GEMINI.md" in footer when contextFileName is not set and count is 1', async () => {
+  it('should display default "RDMind.md" in footer when contextFileName is not set and count is 1', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(1);
-    mockConfig.getAllGeminiMdFilenames.mockReturnValue(['GEMINI.md']);
+    mockConfig.getAllGeminiMdFilenames.mockReturnValue(['RDMind.md']);
     // For this test, ensure showMemoryUsage is false or debugMode is false if it relies on that
     mockConfig.getDebugMode.mockReturnValue(false);
     mockConfig.getShowMemoryUsage.mockReturnValue(false);
@@ -625,14 +625,14 @@ describe('App UI', () => {
     );
     currentUnmount = unmount;
     await Promise.resolve(); // Wait for any async updates
-    expect(lastFrame()).toContain('Using: 1 GEMINI.md file');
+    expect(lastFrame()).toContain('Using: 1 RDMind.md file');
   });
 
-  it('should display default "GEMINI.md" with plural when contextFileName is not set and count is > 1', async () => {
+  it('should display default "RDMind.md" with plural when contextFileName is not set and count is > 1', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(2);
     mockConfig.getAllGeminiMdFilenames.mockReturnValue([
-      'GEMINI.md',
-      'GEMINI.md',
+      'RDMind.md',
+      'RDMind.md',
     ]);
     mockConfig.getDebugMode.mockReturnValue(false);
     mockConfig.getShowMemoryUsage.mockReturnValue(false);
@@ -646,7 +646,7 @@ describe('App UI', () => {
     );
     currentUnmount = unmount;
     await Promise.resolve();
-    expect(lastFrame()).toContain('Using: 2 GEMINI.md files');
+    expect(lastFrame()).toContain('Using: 2 RDMind.md files');
   });
 
   it('should display custom contextFileName in footer when set and count is 1', async () => {
@@ -743,11 +743,11 @@ describe('App UI', () => {
     expect(lastFrame()).not.toContain('ANY_FILE.MD');
   });
 
-  it('should display GEMINI.md and MCP server count when both are present', async () => {
+  it('should display RDMind.md and MCP server count when both are present', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(2);
     mockConfig.getAllGeminiMdFilenames.mockReturnValue([
-      'GEMINI.md',
-      'GEMINI.md',
+      'RDMind.md',
+      'RDMind.md',
     ]);
     mockConfig.getMcpServers.mockReturnValue({
       server1: {} as MCPServerConfig,
@@ -767,7 +767,7 @@ describe('App UI', () => {
     expect(lastFrame()).toContain('1 MCP server');
   });
 
-  it('should display only MCP server count when GEMINI.md count is 0', async () => {
+  it('should display only MCP server count when RDMind.md count is 0', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(0);
     mockConfig.getAllGeminiMdFilenames.mockReturnValue([]);
     mockConfig.getMcpServers.mockReturnValue({

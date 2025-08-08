@@ -222,7 +222,7 @@ export async function parseArguments(): Promise<CliArgs> {
         .option('load-memory-from-include-directories', {
           type: 'boolean',
           description:
-            'If true, when refreshing memory, GEMINI.md files should be loaded from all directories that are added. If false, GEMINI.md files should only be loaded from the primary working directory.',
+            'If true, when refreshing memory, RDMind.md files should be loaded from all directories that are added. If false, RDMind.md files should only be loaded from the primary working directory.',
           default: false,
         })
         .check((argv) => {
