@@ -328,7 +328,7 @@ describe('loadServerHierarchicalMemory', () => {
 
   it('should load extension context file paths', async () => {
     const extensionFilePath = await createTestFile(
-      path.join(testRootDir, 'extensions/ext1/GEMINI.md'),
+      path.join(testRootDir, 'extensions/ext1/RDMind.md'),
       'Extension memory content',
     );
 
