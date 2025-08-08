@@ -1131,7 +1131,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
     // Handle tool calls
     if (choice.message.tool_calls) {
       for (const toolCall of choice.message.tool_calls) {
-        if (toolCall.function) {
+        if (toolCall.type === 'function' && toolCall.function) {
           let args: Record<string, unknown> = {};
           if (toolCall.function.arguments) {
             try {
@@ -1258,6 +1258,35 @@ export class OpenAIContentGenerator implements ContentGenerator {
                   'Failed to parse final tool call arguments:',
                   error,
                 );
+                console.error(
+                  'Raw arguments string:',
+                  JSON.stringify(accumulatedCall.arguments)
+                );
+                console.error(
+                  'Arguments length:',
+                  accumulatedCall.arguments.length
+                );
+                
+                // 尝试修复常见的 JSON 错误
+                try {
+                  // 移除末尾可能的不完整字符
+                  let cleanedArgs = accumulatedCall.arguments.trim();
+                  
+                  // 如果字符串不以 } 结尾，尝试添加
+                  if (!cleanedArgs.endsWith('}') && cleanedArgs.startsWith('{')) {
+                    cleanedArgs += '}';
+                  }
+                  
+                  args = JSON.parse(cleanedArgs);
+                  console.log('Successfully parsed after cleanup');
+                } catch (secondError) {
+                  console.error(
+                    'Failed to parse even after cleanup, using empty args:',
+                    secondError
+                  );
+                  // 如果还是失败，就使用空对象，让工具调用继续执行
+                  args = {};
+                }
               }
             }
 
