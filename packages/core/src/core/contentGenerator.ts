@@ -18,6 +18,7 @@ import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { Config } from '../config/config.js';
 import { getEffectiveModel } from './modelCheck.js';
 import { UserTierId } from '../code_assist/types.js';
+import { LoggingContentGenerator } from './loggingContentGenerator.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -127,7 +128,7 @@ export function createContentGeneratorConfig(
     contentGeneratorConfig.apiKey = openaiApiKey;
     const openaiModel = process.env.OPENAI_MODEL || 'gpt-4o';
     contentGeneratorConfig.model = openaiModel;
-    
+
     // 立即更新 Config 对象的模型，这样 getModel() 就会返回正确的模型名
     config.setModel(openaiModel);
 
@@ -152,11 +153,14 @@ export async function createContentGenerator(
     config.authType === AuthType.LOGIN_WITH_GOOGLE ||
     config.authType === AuthType.CLOUD_SHELL
   ) {
-    return createCodeAssistContentGenerator(
-      httpOptions,
-      config.authType,
+    return new LoggingContentGenerator(
+      await createCodeAssistContentGenerator(
+        httpOptions,
+        config.authType,
+        gcConfig,
+        sessionId,
+      ),
       gcConfig,
-      sessionId,
     );
   }
 
@@ -169,8 +173,7 @@ export async function createContentGenerator(
       vertexai: config.vertexai,
       httpOptions,
     });
-
-    return googleGenAI.models;
+    return new LoggingContentGenerator(googleGenAI.models, gcConfig);
   }
 
   // OpenAI 内容生成器支持
