@@ -76,9 +76,9 @@ export async function parseArguments(): Promise<CliArgs> {
   const yargsInstance = yargs(hideBin(process.argv))
     .scriptName('gemini')
     .usage(
-      'Usage: gemini [options] [command]\n\nGemini CLI - Launch an interactive CLI, use -p/--prompt for non-interactive mode',
+      'Usage: rdmind [options] [command]\n\nRDMind - Launch an interactive CLI, use -p/--prompt for non-interactive mode',
     )
-    .command('$0', 'Launch Gemini CLI', (yargsInstance) =>
+          .command('$0', 'Launch RDMind', (yargsInstance) =>
       yargsInstance
         .option('model', {
           alias: 'm',
