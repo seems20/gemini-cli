@@ -116,7 +116,7 @@ export class TestRig {
   _lastRunStdout?: string;
 
   constructor() {
-    this.bundlePath = join(__dirname, '..', 'bundle/gemini.js');
+    this.bundlePath = join(__dirname, '..', 'bundle/rdmind.js');
     this.testDir = null;
   }
 
